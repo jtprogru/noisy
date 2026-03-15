@@ -1,6 +1,0 @@
-requests==2.27.1
-
-black==24.3.0
-flake8==4.0.1
-isort==5.10.1
-

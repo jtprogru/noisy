@@ -1,10 +1,18 @@
 [Unit]
 Description=Simple random DNS, HTTP/S internet traffic noise generator
+After=network.target
 
 [Service]
 User=noisy
 WorkingDirectory=/opt/noisy
-ExecStart=/usr/bin/python /opt/noisy/noisy.py --config /opt/noisy/config.json
+ExecStart=/opt/noisy/noisy --config /opt/noisy/config.json --log info
+Restart=on-failure
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=noisy
 
 [Install]
 WantedBy=multi-user.target

@@ -2,54 +2,43 @@ SHELL := /bin/bash
 .SILENT:
 .DEFAULT_GOAL := help
 
-SYS_PY3=$(shell which python3)
 VENV_DIR=./venv
-VENV_PY3=$(VENV_DIR)/bin/python
-VENV_PIP3=$(VENV_DIR)/bin/pip
 
-.PHONY: venv
-## Create virtual environment
-venv:
-	$(SYS_PY3) -m venv $(VENV_DIR)
+.PHONY: build
+## Build Go binary
+build:
+	go build -o noisy .
 
-.PHONY: install-deps
-## Update pip and install all requirements from requirements.txt
-install-deps: requirements.txt
-	$(VENV_PIP3) install --upgrade pip setuptools wheel && $(VENV_PIP3) install -r requirements.txt
+.PHONY: run
+## Run the crawler
+run:
+	go run noisy.go --config config.json
 
-.PHONY: isort
-## Run isort linter
-isort:
-	$(VENV_PY3) -m isort noisy.py
+.PHONY: fmt
+## Format Go code
+fmt:
+	go fmt ./...
 
-.PHONY: black
-## Run black linter
-black:
-	$(VENV_PY3) -m black noisy.py
-
-.PHONY: flake8
-## Run flake8 linter
-flake8:
-	$(VENV_PY3) -m flake8 noisy.py
+.PHONY: vet
+## Run go vet
+vet:
+	go vet ./...
 
 .PHONY: lint
-## Run only linters
-lint: isort black flake8 clean
-
-.PHONY: clean-cache
-## Remove directory with cached files
-clean-cache:
-	find ./tasks -type d -name '__pycache__' -exec rm -rf {} +
-	find . -type d -name '.pytest_cache' -exec rm -rf {} +
+## Run linters (fmt, vet)
+lint: fmt vet
 
 .PHONY: clean
-## Clean all artifacts
-clean: clean-cache
+## Clean build artifacts
+clean:
+	rm -rf noisy
+	find . -type d -name '__pycache__' -exec rm -rf {} +
+	find . -type d -name '.pytest_cache' -exec rm -rf {} +
 
 .PHONY: docker.build
 ## Build docker image
 docker.build:
-	docker compose -f docker-compose/docker-compose.yml build 
+	docker compose -f docker-compose/docker-compose.yml build
 
 .PHONY: docker.run
 ## Run builded container

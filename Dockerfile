@@ -1,14 +1,20 @@
-FROM python:3.9.10-alpine3.15
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod ./
+COPY noisy.go ./
+
+RUN go build -o noisy .
+
+FROM alpine:3.19
 
 WORKDIR /opt/noisy
 
-COPY requirements.txt .
+COPY --from=builder /app/noisy .
+COPY config.json .
 
-RUN pip install -r requirements.txt
-
-COPY . /opt/noisy
-
-ENTRYPOINT ["python", "/opt/noisy/noisy.py"]
+ENTRYPOINT ["/opt/noisy/noisy"]
 
 CMD ["--config", "config.json"]
 

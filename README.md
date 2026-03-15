@@ -1,145 +1,263 @@
 # Noisy
 
-A simple python script that generates random HTTP/DNS traffic noise in the background while you go about your regular
-web browsing, to make your web traffic data less valuable for selling and for extra obscurity.
+A simple Go utility that generates random HTTP/DNS traffic noise in the background while you go about your regular web browsing, to make your web traffic data less valuable for selling and for extra obscurity.
 
-Tested on MacOS High Sierra, Ubuntu 16.04 and Raspbian Stretch and is compatable with both Python 2.7 and 3.6
+This is a Go port of the original [Python project](https://github.com/1tayH/noisy) by Itay Hury.
 
-## Getting Started
+## Quick Start
 
-These instructions will get you a copy of the project up and running on your local machine
-
-### Dependencies
-
-Install `requests` if you do not have it already installed, using `pip`:
+### Installation via Homebrew (macOS/Linux)
 
 ```shell
-pip install requests
+# Add the tap
+brew tap jtprogru/noisy https://github.com/jtprogru/noisy
+
+# Install noisy
+brew install noisy
 ```
 
-### Usage
-
-Clone the repository
+### Installation from Source
 
 ```shell
-git clone https://github.com/1tayH/noisy.git
-```
-
-Navigate into the `noisy` directory
-
-```shell
+git clone https://github.com/jtprogru/noisy.git
 cd noisy
+go build -o noisy .
 ```
 
-Run the script
+Or using make:
 
 ```shell
-python noisy.py --config config.json
+make build
 ```
 
-The program can accept a number of command line arguments:
+### Configuration
 
-```shell
-$ python noisy.py --help
-usage: noisy.py [-h] [--log -l] --config -c [--timeout -t]
+Before running, create a `config.json` file with your settings. See [config.example.json](config.example.json) for a template:
 
-optional arguments:
-  -h, --help    show this help message and exit
-  --log -l      logging level
-  --config -c   config file
-  --timeout -t  for how long the crawler should be running, in seconds
+```json
+{
+  "max_depth": 25,
+  "min_sleep": 1,
+  "max_sleep": 5,
+  "timeout": false,
+  "root_urls": [
+    "https://www.example.com"
+  ],
+  "blacklisted_urls": [],
+  "user_agents": [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  ]
+}
 ```
 
-only the config file argument is required.
+## Usage
 
-### Output
+### First Run
 
 ```shell
-$ docker run -it noisy --config config.json --log debug
-DEBUG:urllib3.connectionpool:Starting new HTTP connection (1): 4chan.org:80
-DEBUG:urllib3.connectionpool:http://4chan.org:80 "GET / HTTP/1.1" 301 None
-DEBUG:urllib3.connectionpool:Starting new HTTP connection (1): www.4chan.org:80
-DEBUG:urllib3.connectionpool:http://www.4chan.org:80 "GET / HTTP/1.1" 200 None
-DEBUG:root:found 92 links
-INFO:root:Visiting http://boards.4chan.org/s4s/
-DEBUG:urllib3.connectionpool:Starting new HTTP connection (1): boards.4chan.org:80
-DEBUG:urllib3.connectionpool:http://boards.4chan.org:80 "GET /s4s/ HTTP/1.1" 200 None
-INFO:root:Visiting http://boards.4chan.org/s4s/thread/6850193#p6850345
-DEBUG:urllib3.connectionpool:Starting new HTTP connection (1): boards.4chan.org:80
-DEBUG:urllib3.connectionpool:http://boards.4chan.org:80 "GET /s4s/thread/6850193 HTTP/1.1" 200 None
-INFO:root:Visiting http://boards.4chan.org/o/
-DEBUG:urllib3.connectionpool:Starting new HTTP connection (1): boards.4chan.org:80
-DEBUG:urllib3.connectionpool:http://boards.4chan.org:80 "GET /o/ HTTP/1.1" 200 None
-DEBUG:root:Hit a dead end, moving to the next root URL
-DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): www.reddit.com:443
-DEBUG:urllib3.connectionpool:https://www.reddit.com:443 "GET / HTTP/1.1" 200 None
-DEBUG:root:found 237 links
-INFO:root:Visiting https://www.reddit.com/user/Saditon
-DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): www.reddit.com:443
-DEBUG:urllib3.connectionpool:https://www.reddit.com:443 "GET /user/Saditon HTTP/1.1" 200 None
+./noisy --config config.json
+```
+
+> **⚠️ Note on Startup Delay:** When you first start `noisy`, it may appear to hang for several seconds (typically 3-10 seconds). This is **normal behavior** - the crawler is:
+> 1. Loading and parsing the configuration file
+> 2. Connecting to the first root URL from your list
+> 3. Downloading and parsing the HTML to extract links
+>
+> **Tip:** Use `--log debug` or `--verbose` on first run to see detailed progress:
+> ```shell
+> ./noisy --config config.json --verbose
+> ```
+
+### Command Line Options
+
+```shell
+$ ./noisy --help
+Usage of ./noisy:
+  -config string
+        config file path (required)
+  -log string
+        logging level: debug, info, warning, error (default "info")
+  -timeout int
+        stop after N seconds (0 = no timeout)
+  -verbose
+        enable verbose/debug logging (shorthand for -log debug)
+```
+
+### Logging Levels
+
+| Level | Description |
+|-------|-------------|
+| `debug` | Maximum detail: link extraction, URL visits, errors, dead ends |
+| `info` | Basic information: visited URLs, timeout notifications |
+| `warning` | Only warnings: connection errors, response read errors |
+| `error` | Only critical errors |
+
+### Examples
+
+```shell
+# Run with debug logging (see all activity)
+./noisy --config config.json --log debug
+
+# Use verbose flag (same as --log debug)
+./noisy --config config.json --verbose
+
+# Run with a 5-minute timeout
+./noisy --config config.json --timeout 300
+
+# Run with minimal logging (only warnings and errors)
+./noisy --config config.json --log warning
+```
+
+### Expected Output
+
+With `--log debug`, you'll see continuous activity:
+
+```shell
+$ ./noisy --config config.json --verbose
+2026/03/15 14:53:09 noisy.go:388: [DEBUG] found 1 links
+2026/03/15 14:53:09 noisy.go:319: [INFO] Visiting https://iana.org/domains/example
+2026/03/15 14:53:10 noisy.go:307: [DEBUG] Hit a dead end, moving to the next root URL
+2026/03/15 14:53:11 noisy.go:388: [DEBUG] found 3 links
+2026/03/15 14:53:11 noisy.go:319: [INFO] Visiting https://www.iana.org/
+2026/03/15 14:53:12 noisy.go:319: [INFO] Visiting https://www.iana.org/time-zones
 ...
 ```
 
-## Build Using Docker
+With `--log info`, only visited URLs are shown:
 
-### 1. Build the image
+```shell
+$ ./noisy --config config.json --log info
+2026/03/15 14:53:09 noisy.go:319: [INFO] Visiting https://iana.org/domains/example
+2026/03/15 14:53:11 noisy.go:319: [INFO] Visiting https://www.iana.org/
+2026/03/15 14:53:12 noisy.go:319: [INFO] Visiting https://www.iana.org/time-zones
+...
+```
 
-`docker build -t noisy .`
+## Docker
 
-**Or** if you'd like to build it for a **Raspberry Pi** (running Raspbian stretch):
+### Build the Image
 
-`docker build -f Dockerfile.pi -t noisy .`
+```shell
+docker build -t noisy .
+```
 
-### 2. Create the container and run:
+### Run the Container
 
-`docker run -it noisy --config config.json`
+```shell
+docker run -it noisy --config config.json
+```
 
-## Run multiple containers using `docker-compose`
+### Run Multiple Containers
 
-`docker-compose` is useful if you want to run more than one container at the same time, to generate more noise. To do
-so, simply run the following commands:
+Use `docker-compose` to run multiple instances simultaneously for more noise:
 
 ```shell
 cd docker-compose
 docker-compose build
-docker-compose up --scale noisy=<number-of-containers>
+docker-compose up --scale noisy=3
 ```
 
-## Set noisy to run automatically via systemd
+## Makefile Commands
 
-You can use systemd to start noisy.py automatically on every boot. The provided
-example service assumes that you have the script copied to /opt/noisy and that
-noisy.py and config.json are readable by the 'noisy' user. You can change these
-values to suit your needs.
+| Command | Description |
+|---------|-------------|
+| `make build` | Build Go binary |
+| `make run` | Run the crawler |
+| `make fmt` | Format Go code (`go fmt`) |
+| `make vet` | Run static analysis (`go vet`) |
+| `make lint` | Run all linters (fmt + vet) |
+| `make clean` | Remove build artifacts |
+| `make docker.build` | Build Docker image via docker-compose |
+| `make docker.run` | Build and run Docker container |
+| `make docker.logs` | Show last 100 lines of container logs |
+| `make docker.logf` | Follow container logs in real-time |
 
-To configure the service:
+## systemd (Auto-start on Boot)
+
+You can configure `noisy` to start automatically on system boot using systemd. The provided service file includes:
+
+- Automatic restart on failure
+- Proper logging via journald
+- Graceful shutdown on SIGINT/SIGTERM
+
+### Setup
 
 ```shell
-sudo cp examples/systemd/noisy.service /etc/systemd/system
+# Copy the service file
+sudo cp systemd/noisy.service /etc/systemd/system
+
+# Reload systemd and enable the service
 sudo systemctl daemon-reload
 sudo systemctl enable noisy && sudo systemctl start noisy
 ```
 
-You can view the script's output by running:
+### Viewing Logs
 
 ```shell
-journalctl -f -n noisy
+# View recent logs (last 100 lines)
+journalctl -u noisy -n 100
+
+# Follow logs in real-time
+journalctl -f -u noisy
+
+# View logs with full timestamps and no pager
+journalctl -u noisy --no-pager -o short-precise
 ```
+
+### Changing Log Level
+
+Edit `/etc/systemd/system/noisy.service` and modify the `--log` flag:
+
+```ini
+ExecStart=/opt/noisy/noisy --config /opt/noisy/config.json --log debug
+```
+
+Then reload:
+
+```shell
+sudo systemctl daemon-reload
+sudo systemctl restart noisy
+```
+
+## Prerequisites
+
+- **Go** 1.21 or higher (for building from source)
+- **Docker** (optional, for containerized deployment)
+- **docker-compose** (optional, for multi-container deployment)
+
+## Troubleshooting
+
+### "Noisy appears to hang on startup"
+
+This is normal. The initial connection and link extraction can take 3-10 seconds. Use `--verbose` to see progress.
+
+### "Error connecting to root url"
+
+Some URLs in your `root_urls` list may be temporarily unavailable. The crawler will automatically retry with a different URL. Consider:
+- Checking your internet connection
+- Verifying URLs are accessible in your browser
+- Adding more diverse root URLs to your config
+
+### "Timeout has exceeded"
+
+The crawler stopped after the specified timeout period. This is expected behavior. To run continuously:
+- Remove the `--timeout` flag
+- Set `"timeout": false` in your config
 
 ## Authors
 
-* **Itay Hury** - *Initial work* - [1tayH](https://github.com/1tayH)
-* **Michael Savin** - *Personal customization* - [jtprogru](https://github.com/jtprogru)
+- **Itay Hury** - *Initial work (Python)* - [1tayH](https://github.com/1tayH)
+- **Michael Savin** - *Go port* - [jtprogru](https://github.com/jtprogru)
 
-See also the list of [contributors](https://github.com/1tayH/Noisy/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/1tayH/Noisy/contributors) who participated in the original Python project.
 
 ## License
 
-This project is licensed under the GNU GPLv3 License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the GNU GPLv3 License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-This project has been inspired by
-* [RandomNoise](http://www.randomnoise.us)
-* [web-traffic-generator](https://github.com/ecapuano/web-traffic-generator)
+This project has been inspired by:
 
+- [RandomNoise](http://www.randomnoise.us)
+- [web-traffic-generator](https://github.com/ecapuano/web-traffic-generator)
