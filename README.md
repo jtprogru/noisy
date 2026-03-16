@@ -8,52 +8,36 @@ This is a Go port of the original [Python project](https://github.com/1tayH/nois
 
 ### Installation via Homebrew (macOS/Linux)
 
-**Option 1: Install from source (recommended for now)**
-
-Since the Homebrew tap is not yet published, you can install directly:
+**Option 1: Install from Go module (simplest)**
 
 ```shell
-# Clone and build manually
+go install github.com/jtprogru/noisy@latest
+```
+
+Make sure `$GOPATH/bin` is in your PATH.
+
+**Option 2: Build from source**
+
+```shell
 git clone https://github.com/jtprogru/noisy.git
 cd noisy
 go build -o noisy .
 sudo mv noisy /usr/local/bin/  # Or ~/bin/ for local installation
 ```
 
-**Option 2: Use Homebrew with local formula**
+**Option 3: Use Homebrew with local formula**
 
 ```shell
 # Clone the repository
 git clone https://github.com/jtprogru/noisy.git
-cd noisy
+cd noisy/homebrew
 
-# Install using the local formula
-brew install ./homebrew/noisy.rb
+# Install using the local formula (requires moving to a tap)
+# See HOMEBREW_TAP.md for instructions on setting up a tap
+brew install --build-from-source ./noisy.rb
 ```
 
-**Option 3: Install from Go module**
-
-```shell
-go install github.com/jtprogru/noisy@latest
-```
-
-> **Note:** The official Homebrew tap (`brew tap jtprogru/noisy`) will be available once the formula is published to a separate tap repository.
-
-### Installation from Source
-
-If you prefer to build from source:
-
-```shell
-git clone https://github.com/jtprogru/noisy.git
-cd noisy
-go build -o noisy .
-```
-
-Or using make:
-
-```shell
-make build
-```
+> **Note:** The official Homebrew tap (`brew tap jtprogru/noisy`) requires a separate GitHub repository. See [HOMEBREW_TAP.md](HOMEBREW_TAP.md) for setup instructions.
 
 ### Installation from Binary Releases
 
@@ -68,6 +52,22 @@ curl -sL https://github.com/jtprogru/noisy/releases/latest/download/noisy-darwin
 
 # Linux (amd64)
 curl -sL https://github.com/jtprogru/noisy/releases/latest/download/noisy-linux-amd64 -o noisy && chmod +x noisy && sudo mv noisy /usr/local/bin/
+```
+
+### Build from Source
+
+If you prefer to build from source:
+
+```shell
+git clone https://github.com/jtprogru/noisy.git
+cd noisy
+go build -o noisy .
+```
+
+Or using make:
+
+```shell
+make build
 ```
 
 ### Configuration
