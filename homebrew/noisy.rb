@@ -4,11 +4,11 @@ class Noisy < Formula
   version "0.1.0"
 
   if OS.mac?
-    url "https://github.com/jtprogru/noisy/archive/v#{version}.tar.gz"
-    sha256 "CHANGE_ME" # Run `shasum -a 256 noisy-0.1.0.tar.gz` after creating release
+    url "https://github.com/jtprogru/noisy/archive/refs/tags/v#{version}.tar.gz"
+    sha256 "ae3dacbba037353b6ff32f96e6608cf3f23e0730482c26f9bba31d37f8fea43e"
   elsif OS.linux?
-    url "https://github.com/jtprogru/noisy/archive/v#{version}.tar.gz"
-    sha256 "CHANGE_ME"
+    url "https://github.com/jtprogru/noisy/archive/refs/tags/v#{version}.tar.gz"
+    sha256 "ae3dacbba037353b6ff32f96e6608cf3f23e0730482c26f9bba31d37f8fea43e"
   end
 
   license "GPL-3.0"
