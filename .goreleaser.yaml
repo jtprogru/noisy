@@ -24,19 +24,16 @@ builds:
       - -s -w
       - -X main.version={{.Version}}
       - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
+      - -X main.date={{.CommitDate}}
+    builder: go
 
 archives:
-  - id: default
-    ids:
-      - noisy
+  - formats: ["tar.gz"]
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
-    formats: [tar.gz]
     files:
       - LICENSE
       - README.md
@@ -44,20 +41,6 @@ archives:
 
 checksum:
   name_template: "checksums.txt"
-
-signs:
-  - id: checksums
-    artifacts: checksum
-    cmd: gpg
-    args:
-      - "--batch"
-      - "--pinentry-mode=loopback"
-      - "--passphrase"
-      - "{{ .Env.PASSPHRASE }}"
-      - "--output"
-      - "${signature}"
-      - "--detach-sign"
-      - "${artifact}"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
@@ -73,6 +56,18 @@ changelog:
       - "Merge pull request"
       - "Merge branch"
 
+signs:
+  - artifacts: checksum
+    cmd: gpg2
+    args:
+      - "--batch"
+      - "-u"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+
 release:
   github:
     owner: jtprogru
@@ -81,24 +76,19 @@ release:
   prerelease: auto
   name_template: "v{{ .Version }}"
 
-brews:
+homebrew_casks:
   - name: noisy
-    ids:
-      - default
     repository:
       owner: jtprogru
       name: homebrew-tap
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
+    directory: Casks
     homepage: "https://github.com/jtprogru/noisy"
     description: "Random HTTP/DNS traffic noise generator (Go port of 1tayH/noisy)"
-    license: "GPL-3.0"
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-    install: |
-      bin.install "noisy"
-    test: |
-      system "#{bin}/noisy", "version"
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/noisy"]
+          end

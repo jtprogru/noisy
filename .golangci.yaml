@@ -1,0 +1,80 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - contextcheck
+    - copyloopvar
+    - dupword
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exptostd
+    - fatcontext
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - intrange
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - nolintlint
+    - perfsprint
+    - prealloc
+    - predeclared
+    - reassign
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+  exclusions:
+    generated: strict
+    warn-unused: false
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+      - legacy
+    rules:
+      # Monolithic main file: package-level vars (version/commit/date/logLevel) by design,
+      # plus debt to be addressed in Phase 2 of plans/ROADMAP.md (slog migration, math/rand/v2,
+      # context-aware HTTP, errors.Is/As). Until then, relax strict linters here.
+      - path: noisy\.go
+        linters:
+          - gochecknoglobals
+          - gochecknoinits
+          - errcheck
+          - errname
+          - errorlint
+          - gosec
+          - noctx
+          - perfsprint
+          - revive
+          - staticcheck
+          - usestdlibvars
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+
+formatters:
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/jtprogru/noisy)
+        - localmodule
+      custom-order: true
