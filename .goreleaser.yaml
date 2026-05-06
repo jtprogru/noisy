@@ -88,7 +88,7 @@ brews:
     repository:
       owner: jtprogru
       name: homebrew-tap
-      branch: master
+      branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/jtprogru/noisy"
