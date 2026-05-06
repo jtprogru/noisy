@@ -8,50 +8,27 @@ This is a Go port of the original [Python project](https://github.com/1tayH/nois
 
 ### Installation via Homebrew (macOS/Linux)
 
-**Option 1: Install from Go module (simplest)**
-
 ```shell
-go install github.com/jtprogru/noisy@latest
+brew tap jtprogru/tap https://github.com/jtprogru/homebrew-tap
+brew install noisy
 ```
-
-Make sure `$GOPATH/bin` is in your PATH.
-
-**Option 2: Build from source**
-
-```shell
-git clone https://github.com/jtprogru/noisy.git
-cd noisy
-go build -o noisy .
-sudo mv noisy /usr/local/bin/  # Or ~/bin/ for local installation
-```
-
-**Option 3: Use Homebrew with local formula**
-
-```shell
-# Clone the repository
-git clone https://github.com/jtprogru/noisy.git
-cd noisy/homebrew
-
-# Install using the local formula (requires moving to a tap)
-# See HOMEBREW_TAP.md for instructions on setting up a tap
-brew install --build-from-source ./noisy.rb
-```
-
-> **Note:** The official Homebrew tap (`brew tap jtprogru/noisy`) requires a separate GitHub repository. See [HOMEBREW_TAP.md](HOMEBREW_TAP.md) for setup instructions.
 
 ### Installation from Binary Releases
 
-Download pre-built binaries from the [Releases page](https://github.com/jtprogru/noisy/releases):
+Pre-built binaries (`tar.gz`) for `darwin/linux × amd64/arm64` are published on the [Releases page](https://github.com/jtprogru/noisy/releases) by GoReleaser, with GPG-signed `checksums.txt`.
 
 ```shell
-# macOS (Apple Silicon)
-curl -sL https://github.com/jtprogru/noisy/releases/latest/download/noisy-darwin-arm64 -o noisy && chmod +x noisy && sudo mv noisy /usr/local/bin/
+# Example — Linux x86_64
+VERSION=0.2.0
+curl -sL "https://github.com/jtprogru/noisy/releases/download/v${VERSION}/noisy_Linux_x86_64.tar.gz" \
+  | tar -xz noisy
+sudo mv noisy /usr/local/bin/
+```
 
-# macOS (Intel)
-curl -sL https://github.com/jtprogru/noisy/releases/latest/download/noisy-darwin-amd64 -o noisy && chmod +x noisy && sudo mv noisy /usr/local/bin/
+### Installation via `go install`
 
-# Linux (amd64)
-curl -sL https://github.com/jtprogru/noisy/releases/latest/download/noisy-linux-amd64 -o noisy && chmod +x noisy && sudo mv noisy /usr/local/bin/
+```shell
+go install github.com/jtprogru/noisy@latest
 ```
 
 ### Build from Source
