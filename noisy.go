@@ -18,6 +18,13 @@ import (
 	"time"
 )
 
+// Версионная информация, проставляется через ldflags при сборке (goreleaser).
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 // Глобальный уровень логирования
 var logLevel = "INFO"
 
@@ -411,8 +418,15 @@ func main() {
 	configFile := flag.String("config", "", "config file path")
 	timeout := flag.Int("timeout", 0, "timeout in seconds")
 	verbose := flag.Bool("verbose", false, "enable verbose (debug) logging")
+	showVersion := flag.Bool("version", false, "print version and exit")
 
 	flag.Parse()
+
+	// Поддержка `noisy version` как сабкоманды (для homebrew test и привычного UX).
+	if *showVersion || (flag.NArg() == 1 && flag.Arg(0) == "version") {
+		fmt.Printf("noisy %s (commit %s, built %s)\n", version, commit, date)
+		return
+	}
 
 	if *configFile == "" {
 		log.Fatal("Error: --config flag is required")
