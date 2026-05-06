@@ -1,0 +1,104 @@
+version: 2
+
+project_name: noisy
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: noisy
+    main: ./
+    binary: noisy
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: default
+    ids:
+      - noisy
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    formats: [tar.gz]
+    files:
+      - LICENSE
+      - README.md
+      - config.example.json
+
+checksum:
+  name_template: "checksums.txt"
+
+signs:
+  - id: checksums
+    artifacts: checksum
+    cmd: gpg
+    args:
+      - "--batch"
+      - "--pinentry-mode=loopback"
+      - "--passphrase"
+      - "{{ .Env.PASSPHRASE }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  github:
+    owner: jtprogru
+    name: noisy
+  draft: false
+  prerelease: auto
+  name_template: "v{{ .Version }}"
+
+brews:
+  - name: noisy
+    ids:
+      - default
+    repository:
+      owner: jtprogru
+      name: homebrew-tap
+      branch: master
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/jtprogru/noisy"
+    description: "Random HTTP/DNS traffic noise generator (Go port of 1tayH/noisy)"
+    license: "GPL-3.0"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    install: |
+      bin.install "noisy"
+    test: |
+      system "#{bin}/noisy", "version"
