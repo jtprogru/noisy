@@ -5,4 +5,6 @@ services:
     build:
       context: ../
     command: --config config.json --log debug
+    volumes:
+      - ../config.example.json:/opt/noisy/config.json:ro
 

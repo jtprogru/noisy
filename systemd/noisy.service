@@ -9,6 +9,23 @@ ExecStart=/opt/noisy/noisy --config /opt/noisy/config.json --log info
 Restart=on-failure
 RestartSec=10
 
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+ReadWritePaths=/opt/noisy
+
 # Logging
 StandardOutput=journal
 StandardError=journal
