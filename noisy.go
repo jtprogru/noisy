@@ -28,6 +28,10 @@ var (
 // Глобальный уровень логирования
 var logLevel = "INFO"
 
+// maxBodyBytes ограничивает размер читаемого тела ответа от недоверенного
+// удалённого сервера (defense-in-depth против раздувания памяти).
+const maxBodyBytes = 10 << 20 // 10 MiB
+
 // LogLevel определяет приоритет уровня логирования
 var logLevelPriority = map[string]int{
 	"DEBUG":   0,
@@ -124,7 +128,7 @@ func (c *Crawler) readResponseBody(resp *http.Response) (string, error) {
 		reader = resp.Body
 	}
 
-	body, err := io.ReadAll(reader)
+	body, err := io.ReadAll(io.LimitReader(reader, maxBodyBytes))
 	if err != nil {
 		return "", err
 	}
@@ -147,6 +151,28 @@ func (c *Crawler) LoadConfigFile(filePath string) error {
 	}
 
 	c.config = &config
+	return nil
+}
+
+// validateConfig проверяет, что обязательные поля конфига заданы корректно.
+// Конфиг доверенный (контролируется оператором), но «битые» значения иначе
+// приводят к panic во время обхода — даём понятную ошибку вместо краша.
+func (c *Crawler) validateConfig() error {
+	if len(c.config.RootURLs) == 0 {
+		return fmt.Errorf("root_urls must not be empty")
+	}
+	if len(c.config.UserAgents) == 0 {
+		return fmt.Errorf("user_agents must not be empty")
+	}
+	if c.config.MaxDepth <= 0 {
+		return fmt.Errorf("max_depth must be greater than 0")
+	}
+	if c.config.MinSleep < 0 || c.config.MaxSleep < 0 {
+		return fmt.Errorf("min_sleep and max_sleep must not be negative")
+	}
+	if c.config.MaxSleep <= c.config.MinSleep {
+		return fmt.Errorf("max_sleep (%d) must be greater than min_sleep (%d)", c.config.MaxSleep, c.config.MinSleep)
+	}
 	return nil
 }
 
@@ -457,12 +483,13 @@ func main() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
+	if err := crawler.validateConfig(); err != nil {
+		log.Fatalf("Error: invalid config: %v", err)
+	}
+
 	if *timeout > 0 {
 		crawler.SetOption("timeout", *timeout)
 	}
-
-	// Инициализация random seed
-	rand.Seed(time.Now().UnixNano())
 
 	if err := crawler.Crawl(); err != nil {
 		log.Fatalf("Error during crawl: %v", err)
