@@ -1,99 +1,79 @@
-SHELL := /bin/bash
-.SILENT:
+.PHONY: build test lint clean release install help
+
 .DEFAULT_GOAL := help
 
-VENV_DIR=./venv
+BINARY_DIR=dist
+BINARY_NAME=noisy
+OUTPUT_NAME=$(BINARY_DIR)/$(BINARY_NAME)
+VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+COMMIT=$(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+GO=go
+GOFLAGS=-v
+LDFLAGS=-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(BUILD_TIME)
 
-.PHONY: build
-## Build Go binary
 build:
-	go build -o noisy .
+	$(GO) build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(OUTPUT_NAME) .
 
-.PHONY: run
-## Run the crawler
-run:
-	go run noisy.go --config config.json
+build-linux:
+	GOOS=linux GOARCH=amd64 $(GO) build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(OUTPUT_NAME)-linux-amd64 .
 
-.PHONY: fmt
-## Format Go code
+build-darwin:
+	GOOS=darwin GOARCH=arm64 $(GO) build $(GOFLAGS) -ldflags="$(LDFLAGS)" -o $(OUTPUT_NAME)-darwin-arm64 .
+
+test:
+	$(GO) test $(GOFLAGS) -race -covermode=atomic -coverprofile=coverage.out ./...
+
+test-unit:
+	$(GO) test $(GOFLAGS) -v -race ./...
+
+test-integration:
+	$(GO) test $(GOFLAGS) -v -tags=integration ./...
+
+lint:
+	golangci-lint run ./...
+
 fmt:
-	go fmt ./...
+	gofmt -w .
+	goimports -w .
 
-.PHONY: vet
-## Run go vet
 vet:
-	go vet ./...
+	$(GO) vet ./...
 
-.PHONY: lint
-## Run linters (fmt, vet)
-lint: fmt vet
-
-.PHONY: clean
-## Clean build artifacts
 clean:
-	rm -rf noisy
-	find . -type d -name '__pycache__' -exec rm -rf {} +
-	find . -type d -name '.pytest_cache' -exec rm -rf {} +
+	rm -rf $(BINARY_DIR)/*
+	rm -f coverage.out
 
-.PHONY: docker.build
-## Build docker image
-docker.build:
-	docker compose -f docker-compose/docker-compose.yml build
+install:
+	$(GO) install -ldflags="$(LDFLAGS)"
 
-.PHONY: docker.run
-## Run builded container
-docker.run: docker.build
-	docker compose -f docker-compose/docker-compose.yml up -d
+release:
+	goreleaser release --clean
 
-.PHONY: docker.logs
-## Show latest 100 lines of docker logs
-docker.logs:
-	docker compose -f docker-compose/docker-compose.yml logs --tail=100
+release-dry:
+	goreleaser release --clean --skip-publish --skip-validate
 
-.PHONY: docker.logf
-## Show latest 100 lines of docker logs and follow
-docker.logf:
-	docker compose -f docker-compose/docker-compose.yml logs --tail=100 -f
+tidy:
+	$(GO) mod tidy
+	$(GO) mod verify
 
-.PHONY: help
-## Show this help message
+deps:
+	$(GO) mod download
+
 help:
-	@echo "$$(tput bold)Available rules:$$(tput sgr0)"
-	@echo
-	@sed -n -e "/^## / { \
-		h; \
-		s/.*//; \
-		:doc" \
-		-e "H; \
-		n; \
-		s/^## //; \
-		t doc" \
-		-e "s/:.*//; \
-		G; \
-		s/\\n## /---/; \
-		s/\\n/ /g; \
-		p; \
-	}" ${MAKEFILE_LIST} \
-	| LC_ALL='C' sort --ignore-case \
-	| awk -F '---' \
-		-v ncol=$$(tput cols) \
-		-v indent=19 \
-		-v col_on="$$(tput setaf 6)" \
-		-v col_off="$$(tput sgr0)" \
-	'{ \
-		printf "%s%*s%s ", col_on, -indent, $$1, col_off; \
-		n = split($$2, words, " "); \
-		line_length = ncol - indent; \
-		for (i = 1; i <= n; i++) { \
-			line_length -= length(words[i]) + 1; \
-			if (line_length <= 0) { \
-				line_length = ncol - indent - length(words[i]) - 1; \
-				printf "\n%*s ", -indent, " "; \
-			} \
-			printf "%s ", words[i]; \
-		} \
-		printf "\n"; \
-	}' \
-	| more $(shell test $(shell uname) == Darwin && echo '--no-init --raw-control-chars')
-
-
+	@echo "Available targets:"
+	@echo "  build            - Build binary for current platform"
+	@echo "  build-linux      - Build for Linux amd64"
+	@echo "  build-darwin     - Build for Darwin arm64"
+	@echo "  test             - Run all tests with race detector"
+	@echo "  test-unit        - Run unit tests"
+	@echo "  test-integration - Run integration tests (requires credentials)"
+	@echo "  lint             - Run linter"
+	@echo "  fmt              - Format code"
+	@echo "  vet              - Run go vet"
+	@echo "  clean            - Remove built binaries"
+	@echo "  install          - Install binary to \$$GOPATH/bin"
+	@echo "  release          - Create release with goreleaser"
+	@echo "  release-dry      - Dry run release"
+	@echo "  tidy             - Tidy go modules"
+	@echo "  deps             - Download dependencies"
