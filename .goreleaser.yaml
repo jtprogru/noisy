@@ -86,9 +86,7 @@ homebrew_casks:
     directory: Casks
     homepage: "https://github.com/jtprogru/noisy"
     description: "Random HTTP/DNS traffic noise generator (Go port of 1tayH/noisy)"
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/noisy"]
-          end
+    custom_block: |
+      postflight_steps do
+        run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ "{{staged_path}}" }}/noisy"]
+      end
